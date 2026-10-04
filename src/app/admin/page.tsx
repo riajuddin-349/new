@@ -1,11 +1,41 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowLeft, Check, ImagePlus, LogOut, Trash2, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ImagePlus,
+  LogOut,
+  Trash2,
+  Upload
+} from "lucide-react";
 import Link from "next/link";
 
-type Project = { id: string; title: string; slug: string; category: string; image: string; year: string; source?: string; coverId?: string; gallery?: string[]; galleryIds?: string[] };
-type GalleryItem = { id: string; title: string; image: string; createdAt: string };
+type Project = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  image: string;
+  year: string;
+  source?: string;
+  coverId?: string;
+  gallery?: string[];
+  galleryIds?: string[];
+};
+
+type GalleryItem = {
+  id: string;
+  title: string;
+  image: string;
+  createdAt: string;
+};
+
+type UploadResult = {
+  public_id: string;
+  secure_url: string;
+  created_at?: string;
+};
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -18,21 +48,27 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
-    const [session, projectResponse, galleryResponse] = await Promise.all([
-      fetch("/api/auth/session", { cache: "no-store" }),
-      fetch("/api/projects", { cache: "no-store" }),
-      fetch("/api/gallery", { cache: "no-store" })
-    ]);
+    try {
+      const [session, projectResponse, galleryResponse] =
+        await Promise.all([
+          fetch("/api/auth/session", { cache: "no-store" }),
+          fetch("/api/projects", { cache: "no-store" }),
+          fetch("/api/gallery", { cache: "no-store" })
+        ]);
 
-    const sessionData = await session.json();
-    setAuthenticated(sessionData.authenticated);
+      const sessionData = await session.json();
 
-    if (sessionData.authenticated) {
-      const projectData = await projectResponse.json();
-      const galleryData = await galleryResponse.json();
+      setAuthenticated(sessionData.authenticated);
 
-      setProjects(projectData.items || []);
-      setGallery(galleryData.items || []);
+      if (sessionData.authenticated) {
+        const projectData = await projectResponse.json();
+        const galleryData = await galleryResponse.json();
+
+        setProjects(projectData.items || []);
+        setGallery(galleryData.items || []);
+      }
+    } catch {
+      setAuthenticated(false);
     }
   };
 
@@ -79,6 +115,7 @@ export default function AdminPage() {
           <p className="text-xs font-mono uppercase tracking-[0.3em] text-neutral-500">
             Portfolio CMS
           </p>
+
           <h1 className="mt-2 text-3xl font-medium tracking-tight">
             Admin Dashboard
           </h1>
@@ -95,7 +132,10 @@ export default function AdminPage() {
 
           <button
             onClick={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
+              await fetch("/api/auth/logout", {
+                method: "POST"
+              });
+
               setAuthenticated(false);
             }}
             className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
@@ -179,7 +219,9 @@ export default function AdminPage() {
                 />
 
                 <div className="p-4">
-                  <p className="font-medium">{project.title}</p>
+                  <p className="font-medium">
+                    {project.title}
+                  </p>
 
                   <p className="mt-1 text-xs text-neutral-500">
                     {project.source === "admin"
@@ -202,27 +244,44 @@ export default function AdminPage() {
 
                         setBusy(true);
 
-                        const response = await fetch("/api/projects", {
-                          method: "DELETE",
-                          headers: {
-                            "Content-Type": "application/json"
-                          },
-                          body: JSON.stringify({
-                            slug: project.slug,
-                            coverId: project.coverId,
-                            galleryIds: project.galleryIds || []
-                          })
-                        });
+                        try {
+                          const response = await fetch(
+                            "/api/projects",
+                            {
+                              method: "DELETE",
+                              headers: {
+                                "Content-Type":
+                                  "application/json"
+                              },
+                              body: JSON.stringify({
+                                slug: project.slug,
+                                coverId: project.coverId,
+                                galleryIds:
+                                  project.galleryIds || []
+                              })
+                            }
+                          );
 
-                        const data = await response.json();
+                          const data =
+                            await response.json();
 
-                        if (!response.ok) {
-                          fail(data.error || "Project delete failed.");
-                        } else {
-                          done("Project deleted successfully.");
+                          if (!response.ok) {
+                            fail(
+                              data.error ||
+                                "Project delete failed."
+                            );
+                          } else {
+                            done(
+                              "Project deleted successfully."
+                            );
+                          }
+                        } catch {
+                          fail(
+                            "Project delete failed."
+                          );
+                        } finally {
+                          setBusy(false);
                         }
-
-                        setBusy(false);
                       }}
                       className="mt-4 flex items-center gap-2 text-xs text-red-300 transition hover:text-red-200 disabled:opacity-40"
                     >
@@ -261,23 +320,32 @@ function Login({
           setBusy(true);
           setError("");
 
-          const response = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ password })
-          });
+          try {
+            const response = await fetch(
+              "/api/auth/login",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ password })
+              }
+            );
 
-          const data = await response.json();
+            const data = await response.json();
 
-          if (!response.ok) {
-            setError(data.error || "Login failed.");
-          } else {
-            onLogin(true);
+            if (!response.ok) {
+              setError(
+                data.error || "Login failed."
+              );
+            } else {
+              onLogin(true);
+            }
+          } catch {
+            setError("Login failed.");
+          } finally {
+            setBusy(false);
           }
-
-          setBusy(false);
         }}
         className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-8"
       >
@@ -297,13 +365,17 @@ function Login({
           autoFocus
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) =>
+            setPassword(e.target.value)
+          }
           placeholder="Admin password"
           className="mt-8 w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none focus:border-white/30"
         />
 
         {error ? (
-          <p className="mt-3 text-sm text-red-300">{error}</p>
+          <p className="mt-3 text-sm text-red-300">
+            {error}
+          </p>
         ) : null}
 
         <button
@@ -321,9 +393,11 @@ async function signedUpload(
   file: File,
   endpoint: string,
   payload: Record<string, string>
-) {
+): Promise<UploadResult> {
   if (file.size > 15 * 1024 * 1024) {
-    throw new Error(`${file.name} is larger than 15MB.`);
+    throw new Error(
+      `${file.name} is larger than 15MB.`
+    );
   }
 
   const signResponse = await fetch(endpoint, {
@@ -338,7 +412,8 @@ async function signedUpload(
 
   if (!signResponse.ok) {
     throw new Error(
-      signData.error || "Unable to prepare upload."
+      signData.error ||
+        "Unable to prepare upload."
     );
   }
 
@@ -348,7 +423,10 @@ async function signedUpload(
   form.append("api_key", signData.apiKey);
   form.append("timestamp", signData.timestamp);
   form.append("folder", signData.folder);
-  form.append("signature", signData.signature);
+  form.append(
+    "signature",
+    signData.signature
+  );
 
   if (signData.context) {
     form.append("context", signData.context);
@@ -366,15 +444,26 @@ async function signedUpload(
 
   if (!uploadResponse.ok) {
     throw new Error(
-      data?.error?.message || `Upload failed for ${file.name}.`
+      data?.error?.message ||
+        `Upload failed for ${file.name}.`
     );
   }
 
-  return data as {
-    public_id: string;
-    secure_url: string;
-    created_at?: string;
-  };
+  return data as UploadResult;
+}
+
+async function cleanupCloudinaryImages(
+  ids: string[]
+) {
+  if (!ids.length) return;
+
+  await fetch("/api/gallery", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ ids })
+  }).catch(() => undefined);
 }
 
 function GalleryManager({
@@ -397,17 +486,52 @@ function GalleryManager({
     e.preventDefault();
 
     if (!files.length) {
-      return onError("Select one or more images.");
+      return onError(
+        "Select one or more images."
+      );
     }
 
     setBusy(true);
 
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         files.map((file) =>
-          signedUpload(file, "/api/gallery/sign", { title })
+          signedUpload(
+            file,
+            "/api/gallery/sign",
+            { title }
+          )
         )
       );
+
+      const failed = results.filter(
+        (result) =>
+          result.status === "rejected"
+      );
+
+      const uploadedIds = results
+        .filter(
+          (
+            result
+          ): result is PromiseFulfilledResult<UploadResult> =>
+            result.status === "fulfilled"
+        )
+        .map(
+          (result) =>
+            result.value.public_id
+        );
+
+      if (failed.length) {
+        await cleanupCloudinaryImages(
+          uploadedIds
+        );
+
+        throw new Error(
+          `${failed.length} image${
+            failed.length > 1 ? "s" : ""
+          } failed to upload.`
+        );
+      }
 
       onDone(
         `${files.length} gallery image${
@@ -439,8 +563,8 @@ function GalleryManager({
           </h2>
 
           <p className="mt-2 text-sm text-neutral-500">
-            Images upload directly to Cloudinary. JPG, PNG, WEBP,
-            AVIF and GIF are supported.
+            Images upload directly to Cloudinary. JPG,
+            PNG, WEBP, AVIF and GIF are supported.
           </p>
 
           <label className="mt-6 block text-xs font-mono uppercase tracking-widest text-neutral-500">
@@ -448,7 +572,9 @@ function GalleryManager({
 
             <input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) =>
+                setTitle(e.target.value)
+              }
               className="mt-2 w-full rounded-lg border border-white/10 bg-black px-3 py-3 normal-case tracking-normal text-white outline-none"
             />
           </label>
@@ -470,7 +596,11 @@ function GalleryManager({
               multiple
               className="hidden"
               onChange={(e) =>
-                setFiles(Array.from(e.target.files || []))
+                setFiles(
+                  Array.from(
+                    e.target.files || []
+                  )
+                )
               }
             />
           </label>
@@ -483,11 +613,16 @@ function GalleryManager({
 
           <button
             type="submit"
-            disabled={busy || !files.length}
+            disabled={
+              busy || !files.length
+            }
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 font-medium text-black disabled:opacity-40"
           >
             <Upload className="h-4 w-4" />
-            {busy ? "Uploading…" : "Upload to Gallery"}
+
+            {busy
+              ? "Uploading…"
+              : "Upload to Gallery"}
           </button>
         </form>
 
@@ -519,25 +654,36 @@ function GalleryManager({
                     setBusy(true);
 
                     try {
-                      const response = await fetch("/api/gallery", {
-                        method: "DELETE",
-                        headers: {
-                          "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                          ids: [item.id]
-                        })
-                      });
+                      const response =
+                        await fetch(
+                          "/api/gallery",
+                          {
+                            method: "DELETE",
+                            headers: {
+                              "Content-Type":
+                                "application/json"
+                            },
+                            body: JSON.stringify(
+                              {
+                                ids: [item.id]
+                              }
+                            )
+                          }
+                        );
 
-                      const data = await response.json();
+                      const data =
+                        await response.json();
 
                       if (!response.ok) {
                         throw new Error(
-                          data.error || "Delete failed."
+                          data.error ||
+                            "Delete failed."
                         );
                       }
 
-                      onDone("Gallery image deleted.");
+                      onDone(
+                        "Gallery image deleted."
+                      );
                     } catch (error) {
                       onError(
                         error instanceof Error
@@ -589,17 +735,21 @@ function ProjectManager({
     outcome: ""
   });
 
-  const [cover, setCover] = useState<File | null>(null);
-  const [gallery, setGallery] = useState<File[]>([]);
+  const [cover, setCover] =
+    useState<File | null>(null);
+
+  const [gallery, setGallery] =
+    useState<File[]>([]);
 
   const update = (
     key: keyof typeof values,
     value: string
-  ) =>
+  ) => {
     setValues((v) => ({
       ...v,
       [key]: value
     }));
+  };
 
   const generatedSlug = useMemo(
     () =>
@@ -613,74 +763,200 @@ function ProjectManager({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
 
+    if (!values.title.trim()) {
+      return onError(
+        "Project title is required."
+      );
+    }
+
+    if (!values.category.trim()) {
+      return onError(
+        "Project category is required."
+      );
+    }
+
+    if (!values.description.trim()) {
+      return onError(
+        "Project description is required."
+      );
+    }
+
     if (!cover) {
-      return onError("A cover image is required.");
+      return onError(
+        "A cover image is required."
+      );
+    }
+
+    const slug = (
+      values.slug || generatedSlug
+    )
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    if (!slug) {
+      return onError(
+        "A valid project slug is required."
+      );
     }
 
     setBusy(true);
 
-    let coverData: any = null;
-    const galleryData: any[] = [];
+    let uploadedIds: string[] = [];
 
     try {
-      const slug = values.slug || generatedSlug;
-
-      coverData = await signedUpload(
-        cover,
-        "/api/projects/sign",
-        {
-          slug,
-          title: values.title,
-          kind: "cover"
-        }
-      );
-
-      for (const file of gallery) {
-        galleryData.push(
-          await signedUpload(
-            file,
+      /*
+       * Cover + project gallery images
+       * are uploaded in parallel.
+       */
+      const uploadTasks: Promise<UploadResult>[] =
+        [
+          signedUpload(
+            cover,
             "/api/projects/sign",
             {
               slug,
               title: values.title,
-              kind: "gallery"
+              kind: "cover"
             }
+          ),
+
+          ...gallery.map((file) =>
+            signedUpload(
+              file,
+              "/api/projects/sign",
+              {
+                slug,
+                title: values.title,
+                kind: "gallery"
+              }
+            )
           )
+        ];
+
+      const results =
+        await Promise.allSettled(
+          uploadTasks
+        );
+
+      const failed = results.filter(
+        (result) =>
+          result.status === "rejected"
+      );
+
+      const successfulUploads = results
+        .filter(
+          (
+            result
+          ): result is PromiseFulfilledResult<UploadResult> =>
+            result.status === "fulfilled"
+        )
+        .map(
+          (result) =>
+            result.value
+        );
+
+      uploadedIds = successfulUploads
+        .map(
+          (item) => item.public_id
+        )
+        .filter(Boolean);
+
+      if (failed.length) {
+        await cleanupCloudinaryImages(
+          uploadedIds
+        );
+
+        throw new Error(
+          `${failed.length} project image${
+            failed.length > 1 ? "s" : ""
+          } failed to upload.`
         );
       }
 
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          ...values,
-          slug,
-          image: coverData.secure_url,
-          coverId: coverData.public_id,
-          gallery: galleryData.map(
-            (x) => x.secure_url
-          ),
-          galleryIds: galleryData.map(
-            (x) => x.public_id
-          )
-        })
-      });
+      const coverData =
+        successfulUploads[0];
 
-      const data = await response.json();
+      if (
+        !coverData?.secure_url ||
+        !coverData?.public_id
+      ) {
+        throw new Error(
+          "Cover image upload failed."
+        );
+      }
+
+      const galleryData =
+        successfulUploads.slice(1);
+
+      /*
+       * Save project metadata only after
+       * every image has uploaded successfully.
+       */
+      const response = await fetch(
+        "/api/projects",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body: JSON.stringify({
+            title: values.title.trim(),
+            slug,
+            category:
+              values.category.trim(),
+            year: values.year.trim(),
+            client: values.client.trim(),
+            role: values.role.trim(),
+            description:
+              values.description.trim(),
+            challenge:
+              values.challenge.trim(),
+            outcome:
+              values.outcome.trim(),
+
+            image:
+              coverData.secure_url,
+
+            coverId:
+              coverData.public_id,
+
+            gallery:
+              galleryData.map(
+                (item) =>
+                  item.secure_url
+              ),
+
+            galleryIds:
+              galleryData.map(
+                (item) =>
+                  item.public_id
+              )
+          })
+        }
+      );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Project creation failed."
+          data.error ||
+            "Project creation failed."
         );
       }
 
+      /*
+       * Reset form.
+       */
       setValues({
         title: "",
         slug: "",
         category: "",
-        year: String(new Date().getFullYear()),
+        year: String(
+          new Date().getFullYear()
+        ),
         client: "",
         role: "UI/UX Designer",
         description: "",
@@ -691,23 +967,20 @@ function ProjectManager({
       setCover(null);
       setGallery([]);
 
-      onDone("New project added successfully.");
-    } catch (error) {
-      const uploaded = [
-        coverData?.public_id,
-        ...galleryData.map((x) => x.public_id)
-      ].filter(Boolean);
+      uploadedIds = [];
 
-      if (uploaded.length) {
-        await fetch("/api/gallery", {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            ids: uploaded
-          })
-        }).catch(() => undefined);
+      onDone(
+        `Project "${values.title}" added successfully.`
+      );
+    } catch (error) {
+      /*
+       * Remove Cloudinary uploads if
+       * project creation fails.
+       */
+      if (uploadedIds.length) {
+        await cleanupCloudinaryImages(
+          uploadedIds
+        );
       }
 
       onError(
@@ -726,91 +999,131 @@ function ProjectManager({
         <Field
           label="Project title"
           value={values.title}
-          onChange={(v) => update("title", v)}
+          onChange={(v) =>
+            update("title", v)
+          }
           required
         />
 
         <Field
           label="Slug"
           value={values.slug}
-          placeholder={generatedSlug || "project-slug"}
-          onChange={(v) => update("slug", v)}
+          placeholder={
+            generatedSlug ||
+            "project-slug"
+          }
+          onChange={(v) =>
+            update("slug", v)
+          }
         />
 
         <Field
           label="Category"
           value={values.category}
-          onChange={(v) => update("category", v)}
+          onChange={(v) =>
+            update("category", v)
+          }
           required
         />
 
         <Field
           label="Year"
           value={values.year}
-          onChange={(v) => update("year", v)}
+          onChange={(v) =>
+            update("year", v)
+          }
         />
 
         <Field
           label="Client"
           value={values.client}
-          onChange={(v) => update("client", v)}
+          onChange={(v) =>
+            update("client", v)
+          }
         />
 
         <Field
           label="Role"
           value={values.role}
-          onChange={(v) => update("role", v)}
+          onChange={(v) =>
+            update("role", v)
+          }
         />
 
         <TextField
           label="Description"
           value={values.description}
-          onChange={(v) => update("description", v)}
+          onChange={(v) =>
+            update(
+              "description",
+              v
+            )
+          }
           required
         />
 
         <TextField
           label="Challenge"
           value={values.challenge}
-          onChange={(v) => update("challenge", v)}
+          onChange={(v) =>
+            update(
+              "challenge",
+              v
+            )
+          }
         />
 
         <TextField
           label="Outcome"
           value={values.outcome}
-          onChange={(v) => update("outcome", v)}
+          onChange={(v) =>
+            update(
+              "outcome",
+              v
+            )
+          }
         />
 
         <div className="grid gap-4 md:grid-cols-2">
           <FileBox
             label="Cover image"
             multiple={false}
-            fileCount={cover ? 1 : 0}
-            onChange={(f) =>
-              setCover(f[0] || null)
+            fileCount={
+              cover ? 1 : 0
+            }
+            onChange={(files) =>
+              setCover(
+                files[0] || null
+              )
             }
           />
 
           <FileBox
             label="Gallery images"
             multiple
-            fileCount={gallery.length}
+            fileCount={
+              gallery.length
+            }
             onChange={setGallery}
           />
         </div>
       </div>
 
       <p className="mt-4 text-xs text-neutral-600">
-        Images upload directly to Cloudinary; Vercel does not
-        receive the image files.
+        Images upload directly to Cloudinary;
+        Vercel does not receive the image files.
       </p>
 
       <button
+        type="submit"
         disabled={busy}
         className="mt-6 flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-medium text-black disabled:opacity-40"
       >
         <Upload className="h-4 w-4" />
-        {busy ? "Saving…" : "Add Project"}
+
+        {busy
+          ? "Uploading & saving…"
+          : "Add Project"}
       </button>
     </form>
   );
@@ -908,7 +1221,9 @@ function FileBox({
         className="hidden"
         onChange={(e) =>
           onChange(
-            Array.from(e.target.files || [])
+            Array.from(
+              e.target.files || []
+            )
           )
         }
       />
