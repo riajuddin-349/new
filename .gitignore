@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+.env
+.env.local
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Admin CMS uploads/content
+.env
+.env.local
+public/uploads/*
+!public/uploads/.gitkeep
+content/*.json
