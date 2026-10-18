@@ -62,7 +62,7 @@ export async function addProject(project: Omit<StoredProject, "source" | "metada
 
 export async function updateProject(
   currentSlug: string,
-  project: Omit<StoredProject, "metadataId">
+  project: Project & Partial<Pick<StoredProject, "source" | "coverId" | "galleryIds" | "originalSlug">>
 ) {
   const existing = await getAdminProjects();
   const previous = existing.find((item) => item.slug === currentSlug);
@@ -73,7 +73,7 @@ export async function updateProject(
     ...(defaultProject || {}),
     ...(previous || {}),
     ...project,
-    source: previous?.source || "override",
+    source: previous?.source || project.source || "override",
     originalSlug: previous?.originalSlug || (defaultProject ? currentSlug : undefined),
   } as StoredProject;
 
