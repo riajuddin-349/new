@@ -6,6 +6,7 @@ import {
   Check,
   ImagePlus,
   LogOut,
+  Pencil,
   Trash2,
   Upload
 } from "lucide-react";
@@ -22,6 +23,12 @@ type Project = {
   coverId?: string;
   gallery?: string[];
   galleryIds?: string[];
+  client?: string;
+  role?: string;
+  description?: string;
+  challenge?: string;
+  outcome?: string;
+  originalSlug?: string;
 };
 
 type GalleryItem = {
@@ -46,6 +53,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   const refresh = async () => {
     try {
@@ -194,9 +202,12 @@ export default function AdminPage() {
           />
         ) : (
           <ProjectManager
+            key={editingProject?.slug || "new-project"}
+            editingProject={editingProject}
+            onCancelEdit={() => setEditingProject(null)}
             busy={busy}
             setBusy={setBusy}
-            onDone={done}
+            onDone={(msg) => { setEditingProject(null); done(msg); }}
             onError={fail}
           />
         )}
@@ -229,6 +240,16 @@ export default function AdminPage() {
                       : "Existing project"}
                   </p>
 
+                  <div className="mt-4 flex flex-wrap items-center gap-4">
+                    <button type="button" disabled={busy} onClick={() => {
+                      setEditingProject(project);
+                      setTab("project");
+                      setMessage("");
+                      setError("");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }} className="flex items-center gap-2 text-xs text-neutral-200 transition hover:text-white disabled:opacity-40">
+                      <Pencil className="h-3.5 w-3.5" /> Edit project
+                    </button>
                   {project.source === "admin" ? (
                     <button
                       type="button"
@@ -283,12 +304,13 @@ export default function AdminPage() {
                           setBusy(false);
                         }
                       }}
-                      className="mt-4 flex items-center gap-2 text-xs text-red-300 transition hover:text-red-200 disabled:opacity-40"
+                      className="flex items-center gap-2 text-xs text-red-300 transition hover:text-red-200 disabled:opacity-40"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Delete project
                     </button>
                   ) : null}
+                  </div>
                 </div>
               </div>
             ))}
@@ -713,26 +735,30 @@ function GalleryManager({
 }
 
 function ProjectManager({
+  editingProject,
+  onCancelEdit,
   busy,
   setBusy,
   onDone,
   onError
 }: {
+  editingProject: Project | null;
+  onCancelEdit: () => void;
   busy: boolean;
   setBusy: (v: boolean) => void;
   onDone: (v: string) => void;
   onError: (v: string) => void;
 }) {
   const [values, setValues] = useState({
-    title: "",
-    slug: "",
-    category: "",
-    year: String(new Date().getFullYear()),
-    client: "",
-    role: "UI/UX Designer",
-    description: "",
-    challenge: "",
-    outcome: ""
+    title: editingProject?.title || "",
+    slug: editingProject?.slug || "",
+    category: editingProject?.category || "",
+    year: editingProject?.year || String(new Date().getFullYear()),
+    client: editingProject?.client || "",
+    role: editingProject?.role || "UI/UX Designer",
+    description: editingProject?.description || "",
+    challenge: editingProject?.challenge || "",
+    outcome: editingProject?.outcome || ""
   });
 
   const [cover, setCover] =
@@ -781,10 +807,8 @@ function ProjectManager({
       );
     }
 
-    if (!cover) {
-      return onError(
-        "A cover image is required."
-      );
+    if (!cover && !editingProject?.image) {
+      return onError("A cover image is required.");
     }
 
     const slug = (
@@ -805,173 +829,52 @@ function ProjectManager({
     let uploadedIds: string[] = [];
 
     try {
-      /*
-       * Cover + project gallery images
-       * are uploaded in parallel.
-       */
-      const uploadTasks: Promise<UploadResult>[] =
-        [
-          signedUpload(
-            cover,
-            "/api/projects/sign",
-            {
-              slug,
-              title: values.title,
-              kind: "cover"
-            }
-          ),
+      let coverData: UploadResult | undefined;
+      if (cover) {
+        coverData = await signedUpload(cover, "/api/projects/sign", {
+          slug, title: values.title, kind: "cover"
+        });
+        uploadedIds.push(coverData.public_id);
+      }
 
-          ...gallery.map((file) =>
-            signedUpload(
-              file,
-              "/api/projects/sign",
-              {
-                slug,
-                title: values.title,
-                kind: "gallery"
-              }
-            )
-          )
-        ];
-
-      const results =
-        await Promise.allSettled(
-          uploadTasks
-        );
-
-      const failed = results.filter(
-        (result) =>
-          result.status === "rejected"
+      const galleryResults = await Promise.all(
+        gallery.map((file) => signedUpload(file, "/api/projects/sign", {
+          slug, title: values.title, kind: "gallery"
+        }))
       );
+      uploadedIds.push(...galleryResults.map((item) => item.public_id));
 
-      const successfulUploads = results
-        .filter(
-          (
-            result
-          ): result is PromiseFulfilledResult<UploadResult> =>
-            result.status === "fulfilled"
-        )
-        .map(
-          (result) =>
-            result.value
-        );
+      const image = coverData?.secure_url || editingProject?.image || "";
+      const coverId = coverData?.public_id || editingProject?.coverId || "";
+      const galleryUrls = [...(editingProject?.gallery || []), ...galleryResults.map((item) => item.secure_url)];
+      const galleryIds = [...(editingProject?.galleryIds || []), ...galleryResults.map((item) => item.public_id)];
+      const payload = {
+        title: values.title.trim(), slug,
+        category: values.category.trim(), year: values.year.trim(),
+        client: values.client.trim(), role: values.role.trim(),
+        description: values.description.trim(),
+        challenge: values.challenge.trim(), outcome: values.outcome.trim(),
+        image, coverId, gallery: galleryUrls, galleryIds
+      };
 
-      uploadedIds = successfulUploads
-        .map(
-          (item) => item.public_id
-        )
-        .filter(Boolean);
-
-      if (failed.length) {
-        await cleanupCloudinaryImages(
-          uploadedIds
-        );
-
-        throw new Error(
-          `${failed.length} project image${
-            failed.length > 1 ? "s" : ""
-          } failed to upload.`
-        );
-      }
-
-      const coverData =
-        successfulUploads[0];
-
-      if (
-        !coverData?.secure_url ||
-        !coverData?.public_id
-      ) {
-        throw new Error(
-          "Cover image upload failed."
-        );
-      }
-
-      const galleryData =
-        successfulUploads.slice(1);
-
-      /*
-       * Save project metadata only after
-       * every image has uploaded successfully.
-       */
-      const response = await fetch(
-        "/api/projects",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-          body: JSON.stringify({
-            title: values.title.trim(),
-            slug,
-            category:
-              values.category.trim(),
-            year: values.year.trim(),
-            client: values.client.trim(),
-            role: values.role.trim(),
-            description:
-              values.description.trim(),
-            challenge:
-              values.challenge.trim(),
-            outcome:
-              values.outcome.trim(),
-
-            image:
-              coverData.secure_url,
-
-            coverId:
-              coverData.public_id,
-
-            gallery:
-              galleryData.map(
-                (item) =>
-                  item.secure_url
-              ),
-
-            galleryIds:
-              galleryData.map(
-                (item) =>
-                  item.public_id
-              )
-          })
-        }
-      );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Project creation failed."
-        );
-      }
-
-      /*
-       * Reset form.
-       */
-      setValues({
-        title: "",
-        slug: "",
-        category: "",
-        year: String(
-          new Date().getFullYear()
-        ),
-        client: "",
-        role: "UI/UX Designer",
-        description: "",
-        challenge: "",
-        outcome: ""
+      const response = await fetch("/api/projects", {
+        method: editingProject ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingProject ? { ...payload, currentSlug: editingProject.slug } : payload)
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || (editingProject ? "Project update failed." : "Project creation failed."));
 
+      setValues({
+        title: "", slug: "", category: "",
+        year: String(new Date().getFullYear()),
+        client: "", role: "UI/UX Designer",
+        description: "", challenge: "", outcome: ""
+      });
       setCover(null);
       setGallery([]);
-
       uploadedIds = [];
-
-      onDone(
-        `Project "${values.title}" added successfully.`
-      );
+      onDone(editingProject ? `Project "${values.title}" updated successfully.` : `Project "${values.title}" added successfully.`);
     } catch (error) {
       /*
        * Remove Cloudinary uploads if
@@ -986,7 +889,7 @@ function ProjectManager({
       onError(
         error instanceof Error
           ? error.message
-          : "Project creation failed."
+          : (editingProject ? "Project update failed." : "Project creation failed.")
       );
     } finally {
       setBusy(false);
@@ -995,6 +898,13 @@ function ProjectManager({
 
   return (
     <form onSubmit={submit}>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-medium">{editingProject ? `Edit: ${editingProject.title}` : "Add a project"}</h2>
+          <p className="mt-1 text-sm text-neutral-500">{editingProject ? "Update any project, including existing portfolio projects. Keep images unchanged unless you select replacements." : "Create a new portfolio project."}</p>
+        </div>
+        {editingProject ? <button type="button" onClick={onCancelEdit} className="rounded-lg border border-white/15 px-4 py-2 text-sm text-neutral-300 hover:text-white">Cancel edit</button> : null}
+      </div>
       <div className="grid gap-5 md:grid-cols-2">
         <Field
           label="Project title"
@@ -1086,7 +996,7 @@ function ProjectManager({
 
         <div className="grid gap-4 md:grid-cols-2">
           <FileBox
-            label="Cover image"
+            label={editingProject ? "Replace cover image (optional)" : "Cover image"}
             multiple={false}
             fileCount={
               cover ? 1 : 0
@@ -1099,7 +1009,7 @@ function ProjectManager({
           />
 
           <FileBox
-            label="Gallery images"
+            label={editingProject ? "Add gallery images (optional)" : "Gallery images"}
             multiple
             fileCount={
               gallery.length
@@ -1123,7 +1033,7 @@ function ProjectManager({
 
         {busy
           ? "Uploading & saving…"
-          : "Add Project"}
+          : editingProject ? "Save Changes" : "Add Project"}
       </button>
     </form>
   );
