@@ -64,6 +64,7 @@ export async function PUT(request: Request) {
     const project = await updateProject(currentSlug, {
       ...current,
       id: current.id || randomUUID(),
+      source: (current as typeof current & { source?: "admin" | "override" }).source || "override",
       slug,
       title,
       category,
