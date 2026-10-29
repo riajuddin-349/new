@@ -53,11 +53,12 @@ export async function POST(request: Request) {
   if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: "The PDF must be 10MB or smaller." }, { status: 400 });
 
   const timestamp = String(Math.floor(Date.now() / 1000));
-  const params = { access_mode: "public", overwrite: "true", public_id: PUBLIC_ID, timestamp };
+  // Explicitly clear per-asset access restrictions. access_mode is deprecated by Cloudinary.
+  const params = { access_control: "[]", overwrite: "true", public_id: PUBLIC_ID, timestamp };
   const payload = new FormData();
   payload.append("file", file, "resume.pdf");
   payload.append("public_id", PUBLIC_ID);
-  payload.append("access_mode", "public");
+  payload.append("access_control", "[]");
   payload.append("overwrite", "true");
   payload.append("timestamp", timestamp);
   payload.append("api_key", key()!);
