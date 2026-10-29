@@ -15,6 +15,25 @@ function signature(params: Record<string, string>) {
   return createHash("sha1").update(canonical + secret()).digest("hex");
 }
 
+const adminAuth = () => ({ Authorization: `Basic ${Buffer.from(`${key()}:${secret()}`).toString("base64")}` });
+
+async function clearResumeAccessControl() {
+  const encodedPublicId = PUBLIC_ID.split("/").map(encodeURIComponent).join("/");
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloud()}/resources/raw/upload/${encodedPublicId}`,
+    {
+      method: "POST",
+      headers: { ...adminAuth(), "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ access_control: "[]", invalidate: "true" }),
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Unable to clear resume access restrictions: ${details.slice(0, 300)}`);
+  }
+}
+
 async function currentResume() {
   if (!configured()) return { configured: false, resume: null };
 
@@ -22,15 +41,18 @@ async function currentResume() {
   const encodedPublicId = PUBLIC_ID.split("/").map(encodeURIComponent).join("/");
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${cloud()}/resources/raw/upload/${encodedPublicId}`,
-    {
-      headers: { Authorization: `Basic ${Buffer.from(`${key()}:${secret()}`).toString("base64")}` },
-      cache: "no-store",
-    },
+    { headers: adminAuth(), cache: "no-store" },
   );
 
   if (response.status === 404) return { configured: true, resume: null };
   if (!response.ok) throw new Error("Unable to check resume storage.");
   const data = await response.json();
+
+  // Repair an existing asset that still has an ACL restriction from an earlier upload.
+  if (Array.isArray(data.access_control) && data.access_control.length > 0) {
+    await clearResumeAccessControl();
+  }
+
   return { configured: true, resume: { url: data.secure_url as string, updatedAt: data.created_at as string } };
 }
 
@@ -67,6 +89,15 @@ export async function POST(request: Request) {
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloud()}/raw/upload`, { method: "POST", body: payload });
   const data = await response.json();
   if (!response.ok) return NextResponse.json({ error: data.error?.message || "Cloudinary upload failed." }, { status: 502 });
+
+  // Upload parameters alone may not clear an ACL already stored on an overwritten asset.
+  try {
+    await clearResumeAccessControl();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to publish the uploaded resume.";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+
   return NextResponse.json({ resume: { url: data.secure_url, updatedAt: data.created_at } });
 }
 
