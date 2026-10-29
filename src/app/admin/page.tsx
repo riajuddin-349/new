@@ -30,7 +30,7 @@ export default function AdminPage() {
   useEffect(() => { refresh(); }, []);
 
   if (authenticated === null) return <div className="flex min-h-screen items-center justify-center bg-neutral-950 text-neutral-400">Checking admin session…</div>;
-  if (!authenticated) return <Login password={password} setPassword={setPassword} onLogin={(value) => { setAuthenticated(value); refresh(); }} />;
+  if (!authenticated) return <AdminLogin password={password} setPassword={setPassword} onLogin={(value) => { setAuthenticated(value); refresh(); }} />;
 
   return <div className="min-h-screen bg-neutral-950 px-5 py-8 text-white md:px-10">
     <header className="mx-auto flex max-w-7xl items-center justify-between border-b border-white/10 pb-6">
@@ -86,7 +86,7 @@ function ResumeManager({ busy, setBusy, onDone, onError }: { busy: boolean; setB
   </section>;
 }
 
-function Login({ password, setPassword, onLogin }: { password: string; setPassword: (v: string) => void; onLogin: (v: boolean) => void }) {
+function AdminLogin({ password, setPassword, onLogin }: { password: string; setPassword: (v: string) => void; onLogin: (v: boolean) => void }) {
   const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   return <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-6 text-white"><form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setError(""); const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) }); const data = await response.json(); if (!response.ok) setError(data.error || "Login failed."); else onLogin(true); setBusy(false); }} className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-8"><p className="text-xs font-mono uppercase tracking-[0.3em] text-neutral-500">RIAJ.DESIGN</p><h1 className="mt-3 text-4xl font-medium tracking-tight">Admin Login</h1><p className="mt-3 text-sm text-neutral-500">Sign in to manage your portfolio, gallery, projects and resume.</p><input autoFocus type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Admin password" className="mt-8 w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none focus:border-white/30" />{error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}<button disabled={busy} className="mt-5 w-full rounded-lg bg-white px-4 py-3 font-medium text-black disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button></form></div>;
 }
