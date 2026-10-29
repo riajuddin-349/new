@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { site } from "@/data/site";
 
 const navItems = [
   { name: "Projects", href: "/work" },
+  { name: "My Resume", href: "/resume" },
   { name: "Gallery", href: "/gallery" },
   { name: "About", href: "/#about" },
   { name: "Services", href: "/#services" },
@@ -42,10 +43,10 @@ export function Navbar() {
           {site.brand}
         </Link>
 
-        <div className="hidden gap-8 md:flex">
-          {navItems.map((item, index) => (
+        <div className="hidden items-center gap-6 lg:flex">
+          {navItems.filter((item) => item.name !== "My Resume").map((item, index) => (
             <motion.div key={item.name} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }}>
-              <Link href={item.href} className="group relative text-sm uppercase tracking-widest transition-colors hover:text-white/70">
+              <Link href={item.href} className="group relative text-xs uppercase tracking-widest transition-colors hover:text-white/70">
                 {item.name}
                 <span className="absolute -bottom-1 left-0 h-px w-0 bg-white transition-all group-hover:w-full" />
               </Link>
@@ -53,9 +54,19 @@ export function Navbar() {
           ))}
         </div>
 
-        <button type="button" aria-label="Toggle menu" onClick={() => setOpen((value: boolean) => !value)} className="relative z-50 md:hidden">
-          {open ? <X /> : <Menu />}
-        </button>
+        <div className="relative z-50 flex items-center gap-3">
+          <Link
+            href="/resume"
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-950 transition hover:bg-neutral-200 sm:px-5"
+          >
+            <span className="hidden sm:inline">My Resume</span>
+            <span className="sm:hidden">Resume</span>
+            <ArrowUpRight size={15} />
+          </Link>
+          <button type="button" aria-label="Toggle menu" onClick={() => setOpen((value: boolean) => !value)} className="md:hidden">
+            {open ? <X /> : <Menu />}
+          </button>
+        </div>
 
         <AnimatePresence>
           {open ? (
@@ -64,10 +75,10 @@ export function Navbar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: "100%" }}
               transition={{ duration: 0.4 }}
-              className="fixed inset-0 flex flex-col items-center justify-center gap-12 bg-neutral-950 md:hidden"
+              className="fixed inset-0 flex flex-col items-center justify-center gap-10 bg-neutral-950 md:hidden"
             >
               {navItems.map((item) => (
-                <Link key={item.name} href={item.href} className="text-4xl font-medium tracking-tight transition-colors hover:text-neutral-500">
+                <Link key={item.name} href={item.href} className="text-3xl font-medium tracking-tight transition-colors hover:text-neutral-500">
                   {item.name}
                 </Link>
               ))}

@@ -13,8 +13,7 @@ function sign(value: string) {
 }
 
 export function createSession() {
-  const now = Date.now();
-  const payload = `${now}:${sign(String(now))}`;
+  const payload = `${Date.now()}:${sign(String(Date.now()))}`;
   return `${payload}:${sign(payload)}`;
 }
 

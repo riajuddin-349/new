@@ -1,36 +1,45 @@
+import { randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { NextResponse } from "next/server";
+import { addGalleryItems, getGallery } from "@/lib/content";
 import { isAdmin } from "@/lib/auth";
-import { deleteImage, listImages } from "@/lib/cloudinary";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+
+const allowed = new Map([
+  ["image/jpeg", ".jpg"],
+  ["image/png", ".png"],
+  ["image/webp", ".webp"],
+  ["image/gif", ".gif"],
+  ["image/avif", ".avif"],
+]);
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
 export async function GET() {
-  try {
-    const resources = await listImages("portfolio/gallery");
-    return NextResponse.json({ items: resources.map((item) => ({ id: item.public_id, title: item.context?.custom?.title || "Gallery", image: item.secure_url, createdAt: item.created_at || new Date().toISOString() })) });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Gallery lookup failed." }, { status: 500 });
-  }
+  return NextResponse.json({ items: await getGallery() });
 }
 
 export async function POST(request: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await request.json().catch(() => null);
-  const items = Array.isArray(body?.items) ? body.items : [];
-  if (!items.length) return NextResponse.json({ error: "No gallery images provided." }, { status: 400 });
-  return NextResponse.json({ items });
-}
 
-export async function DELETE(request: Request) {
-  if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  try {
-    const body = await request.json();
-    const ids = Array.isArray(body?.ids) ? body.ids.filter((id: unknown): id is string => typeof id === "string" && id.length > 0) : [];
-    if (!ids.length) return NextResponse.json({ error: "No gallery image selected." }, { status: 400 });
-    await Promise.all(ids.map(deleteImage));
-    return NextResponse.json({ deleted: ids });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Delete failed." }, { status: 500 });
+  const form = await request.formData();
+  const title = String(form.get("title") || "Gallery").trim() || "Gallery";
+  const files = form.getAll("images").filter((value): value is File => value instanceof File);
+  if (!files.length) return NextResponse.json({ error: "Select at least one image." }, { status: 400 });
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "gallery");
+  await mkdir(uploadDir, { recursive: true });
+  const items = [];
+
+  for (const file of files) {
+    const extension = allowed.get(file.type);
+    if (!extension) return NextResponse.json({ error: `Unsupported image type: ${file.type}` }, { status: 400 });
+    if (file.size > MAX_FILE_SIZE) return NextResponse.json({ error: `${file.name} is larger than 15MB.` }, { status: 400 });
+    const id = randomUUID();
+    await writeFile(path.join(uploadDir, `${id}${extension}`), Buffer.from(await file.arrayBuffer()));
+    items.push({ id, title, image: `/uploads/gallery/${id}${extension}`, createdAt: new Date().toISOString() });
   }
+
+  return NextResponse.json({ items: await addGalleryItems(items) });
 }

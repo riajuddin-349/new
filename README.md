@@ -1,38 +1,20 @@
 # Riaj Uddin Portfolio
 
-Next.js portfolio with an admin-managed Gallery and Project CMS.
+Next.js portfolio with the original project archive plus an admin-managed gallery and project CMS.
 
-## Run locally
+## Admin CMS
 
-```bash
-npm install
-npm run dev
-```
+1. Copy `.env.example` to `.env.local`.
+2. Set a strong `ADMIN_PASSWORD` and `ADMIN_SECRET`.
+3. Start the app with `npm run dev`.
+4. Open `/admin` and sign in.
+5. Use **Gallery** to upload multiple images at once.
+6. Use **Projects** to add new case studies with a cover image and optional gallery images.
 
-Open `http://localhost:3000`.
+Existing projects in `src/data/projects.ts` remain the default projects. Admin-created projects are stored separately in `content/projects.json`, so the original data is not overwritten.
 
-### Local admin
+Gallery metadata is stored in `content/gallery.json`. Uploaded files are stored in `public/uploads/`.
 
-Open `http://localhost:3000/admin`.
+### Deployment note
 
-If `ADMIN_PASSWORD` and `ADMIN_SECRET` are not set locally, development fallback credentials are used so the admin can be tested immediately. For production, always set your own values.
-
-## Cloudinary setup
-
-Create `.env.local` from `.env.example` and add:
-
-```env
-ADMIN_PASSWORD=your-admin-password
-ADMIN_SECRET=your-long-random-secret
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-```
-
-Images are uploaded directly from the browser to Cloudinary, so large files do not pass through the Next.js/Vercel request body.
-
-Admin-created project metadata is stored as Cloudinary raw assets. Existing projects remain in `src/data/projects.ts` and are never overwritten.
-
-## Vercel
-
-Add the same five environment variables in the Vercel Project Settings, then redeploy.
+The CMS uses the server filesystem for persistence. Deploy it on a Node/VPS/shared-hosting environment with a writable filesystem. On serverless/ephemeral hosting such as Vercel, move uploaded media and JSON persistence to object storage/database (for example S3-compatible storage + a database) before production use.
