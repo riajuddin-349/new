@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   Check,
+  Eye,
+  FileText,
   ImagePlus,
   LogOut,
   Pencil,
@@ -49,7 +51,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
-  const [tab, setTab] = useState<"gallery" | "project">("gallery");
+  const [tab, setTab] = useState<"gallery" | "project" | "resume">("gallery");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -177,6 +179,15 @@ export default function AdminPage() {
           >
             Projects
           </button>
+
+          <button
+            onClick={() => setTab("resume")}
+            className={`rounded-full px-5 py-2 text-sm ${
+              tab === "resume" ? "bg-white text-black" : "text-neutral-400"
+            }`}
+          >
+            My Resume
+          </button>
         </div>
 
         {message ? (
@@ -200,7 +211,7 @@ export default function AdminPage() {
             onError={fail}
             items={gallery}
           />
-        ) : (
+        ) : tab === "project" ? (
           <ProjectManager
             key={editingProject?.slug || "new-project"}
             editingProject={editingProject}
@@ -210,6 +221,8 @@ export default function AdminPage() {
             onDone={(msg) => { setEditingProject(null); done(msg); }}
             onError={fail}
           />
+        ) : (
+          <ResumeManager busy={busy} setBusy={setBusy} onDone={done} onError={fail} />
         )}
 
         <section className="mt-14 border-t border-white/10 pt-8">
@@ -1031,6 +1044,45 @@ function ProjectManager({
       </button>
     </form>
   );
+}
+
+
+function ResumeManager({ busy, setBusy, onDone, onError }: { busy: boolean; setBusy: (v: boolean) => void; onDone: (v: string) => void; onError: (v: string) => void }) {
+  const [resume, setResume] = useState<{ url: string; updatedAt?: string } | null>(null);
+  const [configured, setConfigured] = useState(true);
+  const [file, setFile] = useState<File | null>(null);
+  const load = async () => { const response = await fetch("/api/resume"); const data = await response.json(); setConfigured(data.configured !== false); setResume(data.resume || null); };
+  useEffect(() => { load(); }, []);
+  const upload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!file) return onError("Choose a PDF resume first.");
+    if (file.type !== "application/pdf" || file.size > 10 * 1024 * 1024) return onError("Please choose a PDF up to 10MB.");
+    setBusy(true); const form = new FormData(); form.append("file", file);
+    const response = await fetch("/api/resume", { method: "POST", body: form }); const data = await response.json();
+    if (!response.ok) onError(data.error || "Resume upload failed.");
+    else { setFile(null); onDone("Resume uploaded successfully. The public resume link stays the same."); await load(); }
+    setBusy(false);
+  };
+  const remove = async () => {
+    if (!window.confirm("Delete the current resume from your public portfolio?")) return;
+    setBusy(true); const response = await fetch("/api/resume", { method: "DELETE" }); const data = await response.json();
+    if (!response.ok) onError(data.error || "Could not delete resume."); else { onDone("Resume deleted from the public portfolio."); setResume(null); }
+    setBusy(false);
+  };
+  return <section className="grid gap-8 lg:grid-cols-[420px_1fr]">
+    <form onSubmit={upload} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+      <div className="flex items-center gap-3"><FileText className="h-6 w-6"/><h2 className="text-2xl font-medium">{resume ? "Replace Resume" : "Upload Resume"}</h2></div>
+      <p className="mt-3 text-sm leading-6 text-neutral-500">Upload a PDF up to 10MB. Your public URL stays the same when you replace the file, so previously shared job-application links continue to work.</p>
+      {!configured ? <p className="mt-5 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-200">Cloudinary storage is not configured yet. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET to the deployment environment.</p> : null}
+      <label className="mt-6 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-black/30 p-5 text-center"><Upload className="mb-3 h-6 w-6"/><span className="text-sm">{file ? file.name : "Choose PDF resume"}</span><span className="mt-2 text-xs text-neutral-600">PDF only · Max 10MB</span><input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)}/></label>
+      <button disabled={busy || !file || !configured} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 font-medium text-black disabled:opacity-40"><Upload className="h-4 w-4"/>{busy ? "Please wait…" : resume ? "Replace Resume" : "Upload Resume"}</button>
+      {resume ? <button type="button" disabled={busy} onClick={remove} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-red-400/20 px-4 py-3 text-sm text-red-300 hover:bg-red-400/5 disabled:opacity-40"><Trash2 className="h-4 w-4"/> Delete Resume</button> : null}
+    </form>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-6">
+      <div className="mb-4 flex items-center justify-between gap-3"><div><h3 className="text-lg font-medium">Resume Preview</h3><p className="mt-1 text-xs text-neutral-500">This is how the PDF appears to visitors.</p></div>{resume ? <a href={resume.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-neutral-300 hover:text-white"><Eye className="h-4 w-4"/> Open PDF</a> : null}</div>
+      {resume ? <iframe key={resume.url} src={resume.url} title="Current resume PDF preview" className="h-[680px] w-full rounded-lg bg-white" /> : <div className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-white/10 text-center"><FileText className="h-10 w-10 text-neutral-600"/><p className="mt-4 font-medium text-neutral-300">No resume uploaded</p><p className="mt-2 max-w-xs text-sm text-neutral-600">Upload your PDF to preview it here and publish it on your portfolio.</p></div>}
+    </div>
+  </section>;
 }
 
 function Field({
