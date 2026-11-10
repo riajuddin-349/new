@@ -73,12 +73,34 @@ async function searchFolder(folder: string, resourceType: "image" | "raw", withC
   return [];
 }
 
+async function searchFolderContents(folder: string, resourceType: "image" | "raw", withContext = false) {
+  const expressions = [
+    `resource_type:${resourceType} AND asset_folder:${folder}/*`,
+    `resource_type:${resourceType} AND folder:${folder}/*`,
+  ];
+  let lastError: unknown;
+  for (const expression of expressions) {
+    try {
+      const resources = await searchResources(expression, withContext);
+      if (resources.length) return resources;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) throw lastError;
+  return [];
+}
+
 export async function listImages(folder: string) {
   return searchFolder(folder, "image", true);
 }
 
 export async function listProjectMetadata() {
   return searchFolder("portfolio/projects/meta", "raw");
+}
+
+export async function listProjectImages() {
+  return searchFolderContents("portfolio/projects", "image", true);
 }
 
 export async function uploadProjectMetadata(slug: string, data: unknown) {
