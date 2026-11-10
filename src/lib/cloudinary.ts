@@ -43,7 +43,7 @@ export async function listImages(folder: string) {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      expression: `resource_type:image AND folder:${folder}`,
+      expression: `resource_type:image AND (folder:"${folder}" OR asset_folder:"${folder}")`,
       sort_by: [{ created_at: "desc" }],
       max_results: 500,
       with_field: ["context"],
@@ -62,7 +62,7 @@ export async function listProjectMetadata() {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      expression: "resource_type:raw AND folder:portfolio/projects/meta",
+      expression: `resource_type:raw AND (folder:"portfolio/projects/meta" OR asset_folder:"portfolio/projects/meta")`,
       sort_by: [{ created_at: "desc" }],
       max_results: 500,
     }),
