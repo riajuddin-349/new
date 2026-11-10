@@ -124,6 +124,15 @@ export function Footer() {
 
                     <li>
                       <a
+                        href="/resume"
+                        className="text-lg font-light text-neutral-400 hover:text-white"
+                      >
+                        Resume
+                      </a>
+                    </li>
+
+                    <li>
+                      <a
                         href="/#about"
                         className="text-lg font-light text-neutral-400 hover:text-white"
                       >
