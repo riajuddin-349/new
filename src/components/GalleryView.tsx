@@ -3,11 +3,19 @@
 import Link from "next/link";
 import { ArrowLeft, X, Maximize2, ChevronLeft, ChevronRight, Grid2X2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { GalleryItem } from "@/lib/content";
 
 export function GalleryView({ items }: { items: GalleryItem[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const warmedImages = useRef(new Set<string>());
+  const warmImage = useCallback((src: string) => {
+    if (!src || warmedImages.current.has(src)) return;
+    warmedImages.current.add(src);
+    const image = new window.Image();
+    image.decoding = "async";
+    image.src = src;
+  }, []);
   const selected = selectedIndex === null ? null : items[selectedIndex] ?? null;
 
   const closePreview = useCallback(() => setSelectedIndex(null), []);
@@ -59,7 +67,10 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
               <motion.button
                 type="button"
                 key={item.id}
-                onClick={() => setSelectedIndex(index)}
+                onClick={() => { warmImage(item.image); setSelectedIndex(index); }}
+                onPointerEnter={() => warmImage(item.image)}
+                onFocus={() => warmImage(item.image)}
+                onPointerDown={() => warmImage(item.image)}
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index * 0.025, 0.4), duration: 0.45 }}
@@ -129,6 +140,8 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                   <img
                     src={selected.image}
                     alt={selected.title}
+                    fetchPriority="high"
+                    decoding="async"
                     className="max-h-full max-w-full rounded-sm object-contain shadow-[0_25px_100px_rgba(0,0,0,0.55)]"
                   />
                 </motion.div>
@@ -166,7 +179,8 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setSelectedIndex(index)}
+                      onClick={() => { warmImage(item.image); setSelectedIndex(index); }}
+                      onPointerEnter={() => warmImage(item.image)}
                       aria-label={`View ${item.title}`}
                       aria-current={selectedIndex === index ? "true" : undefined}
                       className={`relative h-12 w-12 shrink-0 overflow-hidden border transition-all duration-300 sm:h-14 sm:w-14 ${selectedIndex === index ? "border-white opacity-100" : "border-white/10 opacity-40 hover:border-white/40 hover:opacity-80"}`}
