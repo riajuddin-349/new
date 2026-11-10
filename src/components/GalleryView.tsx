@@ -34,27 +34,27 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
   }, [selectedIndex, closePreview, showPrevious, showNext]);
 
   return (
-    <main className="min-h-screen bg-[#080808] px-4 pb-28 pt-32 text-white sm:px-6 md:pt-36">
-      <div className="container mx-auto">
-        <Link href="/" className="mb-12 inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.2em] text-neutral-500 transition-colors hover:text-white">
+    <main className="min-h-screen bg-[#080808] px-5 pb-32 pt-28 text-white sm:px-8 md:px-10 md:pt-36">
+      <div className="mx-auto w-full max-w-[1500px]">
+        <Link href="/" className="mb-16 inline-flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.24em] text-neutral-500 transition-colors hover:text-white md:mb-24">
           <ArrowLeft className="h-4 w-4" /> Back to Home
         </Link>
 
-        <header className="mb-12 flex flex-col justify-between gap-7 border-b border-white/10 pb-10 md:mb-16 md:flex-row md:items-end md:pb-12">
+        <header className="mb-14 flex flex-col justify-between gap-8 border-b border-white/10 pb-12 md:mb-20 md:flex-row md:items-end md:pb-14">
           <div>
-            <p className="mb-5 text-[10px] font-mono uppercase tracking-[0.32em] text-neutral-500">The visual collection</p>
-            <h1 className="text-6xl font-medium leading-[0.88] tracking-[-0.07em] sm:text-7xl md:text-8xl lg:text-[7.5rem]">
+            <p className="mb-6 text-[10px] font-mono uppercase tracking-[0.36em] text-neutral-500">The visual collection</p>
+            <h1 className="text-[3.6rem] font-medium leading-[0.9] tracking-[-0.075em] sm:text-7xl md:text-8xl lg:text-[8rem]">
               Selected <span className="font-serif font-normal italic text-neutral-500">Visuals.</span>
             </h1>
           </div>
-          <div className="flex max-w-sm items-end justify-between gap-8 md:pb-1">
-            <p className="max-w-[17rem] text-sm leading-7 text-neutral-400">A growing archive of visual experiments, identities, campaigns, and digital craft.</p>
+          <div className="flex max-w-md items-end justify-between gap-8 md:pb-2">
+            <p className="max-w-[19rem] text-[13px] leading-7 text-neutral-400">A growing archive of visual experiments, identities, campaigns, and digital craft.</p>
             <span className="shrink-0 pb-1 text-xs font-mono tabular-nums text-neutral-600">{String(items.length).padStart(2, "0")} WORKS</span>
           </div>
         </header>
 
         {items.length ? (
-          <div className="columns-1 gap-x-5 sm:columns-2 lg:columns-3 xl:columns-4">
+          <div className="columns-1 gap-x-6 sm:columns-2 xl:columns-3 2xl:gap-x-8">
             {items.map((item, index) => (
               <motion.button
                 type="button"
@@ -63,14 +63,14 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index * 0.025, 0.4), duration: 0.45 }}
-                className="group relative mb-8 block w-full break-inside-avoid text-left outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                className="group relative mb-10 block w-full break-inside-avoid text-left outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:mb-12"
                 aria-label={`Open ${item.title}`}
               >
                 <div className="relative overflow-hidden bg-[#111] ring-1 ring-inset ring-white/[0.08] transition duration-500 group-hover:ring-white/25">
                   <img src={item.image} alt={item.title} loading={index > 5 ? "lazy" : "eager"} className="block h-auto w-full transition-transform duration-700 ease-out group-hover:scale-[1.035]" />
                   <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/10" />
                 </div>
-                <div className="flex items-start justify-between gap-4 border-b border-white/[0.09] py-3 transition-colors duration-300 group-hover:border-white/30">
+                <div className="flex items-start justify-between gap-4 border-b border-white/[0.09] py-4 transition-colors duration-300 group-hover:border-white/30">
                   <span className="min-w-0 truncate text-[11px] font-medium tracking-[0.02em] text-neutral-400 transition-colors group-hover:text-white">{item.title}</span>
                   <span className="shrink-0 text-[9px] font-mono tabular-nums tracking-widest text-neutral-700">{String(index + 1).padStart(2, "0")}</span>
                 </div>
