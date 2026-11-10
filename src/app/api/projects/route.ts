@@ -92,8 +92,8 @@ export async function DELETE(request: Request) {
     const body = await request.json();
     const slug = String(body?.slug || "").trim();
     if (!slug) return NextResponse.json({ error: "Project slug is required." }, { status: 400 });
-    const { deleteAdminProject } = await import("@/lib/content");
-    const project = await deleteAdminProject(slug);
+    const { deleteProject } = await import("@/lib/content");
+    const project = await deleteProject(slug);
     if (!project) return NextResponse.json({ error: "Admin project not found." }, { status: 404 });
     const ids = [String(body?.coverId || ""), ...(Array.isArray(body?.galleryIds) ? body.galleryIds : [])].filter(Boolean);
     await Promise.all(ids.map((id) => deleteImage(id)));
