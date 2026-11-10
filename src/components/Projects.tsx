@@ -31,8 +31,8 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
   return (
     <motion.div ref={ref} style={{ y: even ? 0 : y }} className={`group cursor-pointer ${even ? "" : "md:mt-32"}`}>
       <Link href={`/work/${project.slug}`}>
-        <div className="relative mb-8 aspect-[4/3] overflow-hidden rounded-sm bg-neutral-900">
-          <motion.img whileHover={{ scale: 1.05 }} transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }} src={project.image} alt={project.title} className="absolute inset-0 h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100" />
+        <div className="relative mb-8 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-sm bg-neutral-900">
+          {project.image ? <motion.img whileHover={{ scale: 1.05 }} transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }} src={project.image} alt={project.title} className="absolute inset-0 h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100" /> : <div className="relative z-0 px-8 text-center"><span className="mb-4 block text-[10px] font-mono uppercase tracking-[0.35em] text-neutral-600">Selected Project</span><span className="block text-4xl font-medium tracking-tight text-neutral-300 md:text-5xl">{project.title}</span></div>}
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-neutral-950/20 opacity-0 transition-opacity duration-500 group-hover:opacity-100"><div className="scale-0 rounded-full border border-white/10 bg-white/10 p-5 backdrop-blur-md transition-transform duration-500 group-hover:scale-100"><ArrowUpRight className="h-6 w-6" /></div></div>
         </div>
         <div className="flex items-end justify-between border-t border-white/10 pt-6"><div><h3 className="mb-2 text-3xl font-medium tracking-tight transition-colors group-hover:text-neutral-400">{project.title}</h3><p className="text-xs font-mono uppercase tracking-widest text-neutral-500">{project.category}</p></div><span className="text-xs font-mono text-neutral-600">{project.year}</span></div>
