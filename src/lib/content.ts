@@ -9,7 +9,7 @@ export type GalleryItem = {
 };
 
 export type StoredProject = Project & {
-  source: "admin" | "override";
+  source: "admin" | "override" | "deleted";
   coverId?: string;
   galleryIds?: string[];
   metadataId?: string;
@@ -27,7 +27,7 @@ export async function getAdminProjects(): Promise<StoredProject[]> {
       const data = (await response.json()) as StoredProject;
       projects.push({
         ...data,
-        source: data.source === "override" ? "override" : "admin",
+        source: data.source === "override" ? "override" : data.source === "deleted" ? "deleted" : "admin",
         metadataId: resource.public_id,
       });
     } catch {
@@ -42,7 +42,8 @@ export async function getAllProjects(): Promise<Project[]> {
     const stored = await getAdminProjects();
     const overrides = stored.filter((item) => item.source === "override");
     const added = stored.filter((item) => item.source === "admin");
-    const replacedSlugs = new Set(overrides.flatMap((item) => [item.originalSlug, item.slug]).filter(Boolean));
+    const deleted = stored.filter((item) => item.source === "deleted");
+    const replacedSlugs = new Set([...overrides.flatMap((item) => [item.originalSlug, item.slug]), ...deleted.map((item) => item.originalSlug || item.slug)].filter(Boolean));
     const defaults = defaultProjects.filter((item) => !replacedSlugs.has(item.slug));
     return [...defaults, ...overrides, ...added];
   } catch {
@@ -88,12 +89,17 @@ export async function updateProject(
   return stored;
 }
 
-export async function deleteAdminProject(slug: string) {
+export async function deleteProject(slug: string) {
   const items = await getAdminProjects();
-  const found = items.find((item) => item.slug === slug && item.source === "admin");
-  if (!found) return undefined;
-  await deleteRaw(found.metadataId || `portfolio/projects/meta/${slug}.json`);
-  return found;
+  const found = items.find((item) => item.slug === slug && item.source !== "deleted");
+  const defaultProject = defaultProjects.find((item) => item.slug === slug);
+  if (!found && !defaultProject) return undefined;
+  if (found?.metadataId) await deleteRaw(found.metadataId);
+  if (defaultProject || found?.source === "override") {
+    const tombstone = { id: slug, slug, originalSlug: defaultProject ? slug : found?.originalSlug || slug, title: found?.title || defaultProject?.title || slug, category: found?.category || defaultProject?.category || "", image: "", gallery: [], year: "", client: "", role: "", description: "", challenge: "", outcome: "", source: "deleted" as const };
+    await uploadProjectMetadata(slug, tombstone);
+  }
+  return found || defaultProject;
 }
 
 export async function getGallery(): Promise<GalleryItem[]> {
