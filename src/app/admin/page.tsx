@@ -238,11 +238,7 @@ export default function AdminPage() {
                 key={project.id}
                 className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]"
               >
-                <img
-                  src={project.image}
-                  alt=""
-                  className="aspect-[4/3] w-full object-cover"
-                />
+                {project.image ? <img src={project.image} alt="" className="aspect-[4/3] w-full object-cover" /> : <div className="flex aspect-[4/3] items-center justify-center bg-neutral-900 px-4 text-center text-xl font-medium text-neutral-300">{project.title}</div>}
 
                 <div className="p-4">
                   <p className="font-medium">
