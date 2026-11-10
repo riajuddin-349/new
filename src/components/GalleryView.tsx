@@ -96,15 +96,9 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
         )}
       </div>
 
-      <AnimatePresence mode="wait">
-        {selected ? (
-          <motion.div
-            key="gallery-lightbox"
+      {selected ? (
+          <div
             className="fixed inset-0 z-[100] flex flex-col bg-[#050505]/[0.98] text-white backdrop-blur-2xl"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
             onMouseDown={(event) => { if (event.target === event.currentTarget) closePreview(); }}
           >
             <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/[0.08] px-4 sm:px-7">
@@ -128,15 +122,7 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
 
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-14 py-5 sm:px-24 md:px-28 md:py-8">
               <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(#888 0.6px, transparent 0.6px)", backgroundSize: "18px 18px" }} />
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={selected.id}
-                  className="relative flex h-full w-full items-center justify-center"
-                  initial={{ opacity: 0, scale: 0.985, y: 8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.985, y: -5 }}
-                  transition={{ duration: 0.24, ease: "easeOut" }}
-                >
+              <div className="relative flex h-full w-full items-center justify-center">
                   <img
                     src={selected.image}
                     alt={selected.title}
@@ -144,8 +130,7 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                     decoding="async"
                     className="max-h-full max-w-full rounded-sm object-contain shadow-[0_25px_100px_rgba(0,0,0,0.55)]"
                   />
-                </motion.div>
-              </AnimatePresence>
+              </div>
 
               {items.length > 1 ? (
                 <>
@@ -194,9 +179,8 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                 <motion.div className="h-full bg-white/70" initial={false} animate={{ width: `${((selectedIndex! + 1) / items.length) * 100}%` }} transition={{ duration: 0.3 }} />
               </div>
             </div>
-          </motion.div>
+          </div>
         ) : null}
-      </AnimatePresence>
     </main>
   );
 }
