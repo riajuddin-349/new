@@ -261,8 +261,7 @@ export default function AdminPage() {
                     }} className="flex items-center gap-2 text-xs text-neutral-200 transition hover:text-white disabled:opacity-40">
                       <Pencil className="h-3.5 w-3.5" /> Edit project
                     </button>
-                  {project.source === "admin" ? (
-                    <button
+                  <button
                       type="button"
                       disabled={busy}
                       onClick={async () => {
@@ -320,7 +319,6 @@ export default function AdminPage() {
                       <Trash2 className="h-3.5 w-3.5" />
                       Delete project
                     </button>
-                  ) : null}
                   </div>
                 </div>
               </div>
