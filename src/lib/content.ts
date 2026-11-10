@@ -1,5 +1,5 @@
 import { projects as defaultProjects, type Project } from "@/data/projects";
-import { deleteRaw, listProjectMetadata, uploadProjectMetadata } from "@/lib/cloudinary";
+import { deleteRaw, listProjectImages, listProjectMetadata, uploadProjectMetadata } from "@/lib/cloudinary";
 
 export type GalleryItem = {
   id: string;
@@ -45,7 +45,19 @@ export async function getAllProjects(): Promise<Project[]> {
     const deleted = stored.filter((item) => item.source === "deleted");
     const replacedSlugs = new Set([...overrides.flatMap((item) => [item.originalSlug, item.slug]), ...added.map((item) => item.slug), ...deleted.map((item) => item.originalSlug || item.slug)].filter(Boolean));
     const defaults = defaultProjects.filter((item) => !replacedSlugs.has(item.slug));
-    return [...defaults, ...overrides, ...added];
+    const merged = [...defaults, ...overrides, ...added];
+    const projectAssets = await listProjectImages().catch(() => []);
+    return merged.map((project) => {
+      const assets = projectAssets.filter((asset) => asset.context?.custom?.projectSlug === project.slug);
+      const cover = assets.find((asset) => asset.context?.custom?.projectAsset === "cover");
+      const galleryAssets = assets.filter((asset) => asset.context?.custom?.projectAsset === "gallery");
+      const existingGallery = (project.gallery || []).filter((url) => !url.includes("placeholder.svg"));
+      return {
+        ...project,
+        image: project.image && !project.image.includes("placeholder.svg") ? project.image : cover?.secure_url || "",
+        gallery: [...new Set([...existingGallery, ...galleryAssets.map((asset) => asset.secure_url)])],
+      };
+    });
   } catch {
     return [...defaultProjects];
   }
