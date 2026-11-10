@@ -43,7 +43,7 @@ export async function getAllProjects(): Promise<Project[]> {
     const overrides = stored.filter((item) => item.source === "override");
     const added = stored.filter((item) => item.source === "admin");
     const deleted = stored.filter((item) => item.source === "deleted");
-    const replacedSlugs = new Set([...overrides.flatMap((item) => [item.originalSlug, item.slug]), ...deleted.map((item) => item.originalSlug || item.slug)].filter(Boolean));
+    const replacedSlugs = new Set([...overrides.flatMap((item) => [item.originalSlug, item.slug]), ...added.map((item) => item.slug), ...deleted.map((item) => item.originalSlug || item.slug)].filter(Boolean));
     const defaults = defaultProjects.filter((item) => !replacedSlugs.has(item.slug));
     return [...defaults, ...overrides, ...added];
   } catch {
