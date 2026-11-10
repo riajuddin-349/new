@@ -36,41 +36,49 @@ export function getCloudinaryUploadConfig(folder: string, context: Record<string
   };
 }
 
-export async function listImages(folder: string) {
+async function searchResources(expression: string, withContext = false) {
   const { apiKey, apiSecret, cloudName } = getConfig();
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/resources/search`, {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      expression: `resource_type:image AND (folder:"${folder}" OR asset_folder:"${folder}")`,
+      expression,
       sort_by: [{ created_at: "desc" }],
       max_results: 500,
-      with_field: ["context"],
+      ...(withContext ? { with_field: ["context"] } : {}),
     }),
     cache: "no-store",
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data?.error?.message || "Cloudinary resource lookup failed.");
-  return data.resources as Array<{ public_id: string; secure_url: string; created_at?: string; context?: { custom?: Record<string, string> } }>;
+  return (data.resources || []) as Array<{ public_id: string; secure_url: string; created_at?: string; context?: { custom?: Record<string, string> } }>;
+}
+
+async function searchFolder(folder: string, resourceType: "image" | "raw", withContext = false) {
+  const expressions = [
+    `resource_type:${resourceType} AND asset_folder="${folder}"`,
+    `resource_type:${resourceType} AND folder="${folder}"`,
+  ];
+  let lastError: unknown;
+  for (const expression of expressions) {
+    try {
+      const resources = await searchResources(expression, withContext);
+      if (resources.length) return resources;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) throw lastError;
+  return [];
+}
+
+export async function listImages(folder: string) {
+  return searchFolder(folder, "image", true);
 }
 
 export async function listProjectMetadata() {
-  const { apiKey, apiSecret, cloudName } = getConfig();
-  const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/resources/search`, {
-    method: "POST",
-    headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      expression: `resource_type:raw AND (folder:"portfolio/projects/meta" OR asset_folder:"portfolio/projects/meta")`,
-      sort_by: [{ created_at: "desc" }],
-      max_results: 500,
-    }),
-    cache: "no-store",
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || "Cloudinary project metadata lookup failed.");
-  return data.resources as Array<{ public_id: string; secure_url: string; created_at?: string }>;
+  return searchFolder("portfolio/projects/meta", "raw");
 }
 
 export async function uploadProjectMetadata(slug: string, data: unknown) {
