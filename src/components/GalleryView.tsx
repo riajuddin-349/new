@@ -54,7 +54,7 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
         </header>
 
         {items.length ? (
-          <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+          <div className="columns-1 gap-x-5 sm:columns-2 lg:columns-3 xl:columns-4">
             {items.map((item, index) => (
               <motion.button
                 type="button"
@@ -63,16 +63,20 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index * 0.025, 0.4), duration: 0.45 }}
-                className="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded-xl border border-white/[0.07] bg-[#141414] text-left outline-none transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_18px_55px_rgba(0,0,0,0.35)] focus-visible:ring-2 focus-visible:ring-white/70"
+                className="group relative mb-8 block w-full break-inside-avoid text-left outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 aria-label={`Open ${item.title}`}
               >
-                <img src={item.image} alt={item.title} loading={index > 5 ? "lazy" : "eager"} className="block h-auto w-full transition-transform duration-700 ease-out group-hover:scale-[1.035]" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-3 p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                  <span className="min-w-0 truncate text-[10px] font-mono uppercase tracking-[0.16em] text-white">{item.title}</span>
-                  <Maximize2 className="h-4 w-4 shrink-0 text-white" />
+                <div className="relative overflow-hidden bg-[#111] ring-1 ring-inset ring-white/[0.08] transition duration-500 group-hover:ring-white/25">
+                  <img src={item.image} alt={item.title} loading={index > 5 ? "lazy" : "eager"} className="block h-auto w-full transition-transform duration-700 ease-out group-hover:scale-[1.035]" />
+                  <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/10" />
                 </div>
-                <span className="pointer-events-none absolute right-3 top-3 rounded-full border border-white/20 bg-black/35 px-2 py-1 text-[9px] font-mono tabular-nums text-white/80 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">{String(index + 1).padStart(2, "0")}</span>
+                <div className="flex items-start justify-between gap-4 border-b border-white/[0.09] py-3 transition-colors duration-300 group-hover:border-white/30">
+                  <span className="min-w-0 truncate text-[11px] font-medium tracking-[0.02em] text-neutral-400 transition-colors group-hover:text-white">{item.title}</span>
+                  <span className="shrink-0 text-[9px] font-mono tabular-nums tracking-widest text-neutral-700">{String(index + 1).padStart(2, "0")}</span>
+                </div>
+                <span className="pointer-events-none absolute right-3 top-3 flex h-9 w-9 translate-y-1 items-center justify-center border border-white/20 bg-black/40 text-white opacity-0 backdrop-blur-md transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                  <Maximize2 className="h-4 w-4" />
+                </span>
               </motion.button>
             ))}
           </div>
@@ -156,7 +160,23 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                   <span>Close</span>
                 </div>
               </div>
-              <div className="mx-auto mt-5 h-px max-w-6xl overflow-hidden bg-white/[0.08]">
+              {items.length > 1 ? (
+                <div className="mx-auto mt-5 flex max-w-6xl gap-2 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:#444_transparent]">
+                  {items.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSelectedIndex(index)}
+                      aria-label={`View ${item.title}`}
+                      aria-current={selectedIndex === index ? "true" : undefined}
+                      className={`relative h-12 w-12 shrink-0 overflow-hidden border transition-all duration-300 sm:h-14 sm:w-14 ${selectedIndex === index ? "border-white opacity-100" : "border-white/10 opacity-40 hover:border-white/40 hover:opacity-80"}`}
+                    >
+                      <img src={item.image} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mx-auto mt-3 h-px max-w-6xl overflow-hidden bg-white/[0.08]">
                 <motion.div className="h-full bg-white/70" initial={false} animate={{ width: `${((selectedIndex! + 1) / items.length) * 100}%` }} transition={{ duration: 0.3 }} />
               </div>
             </div>
