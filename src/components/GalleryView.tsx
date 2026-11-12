@@ -9,6 +9,9 @@ import type { GalleryItem } from "@/lib/content";
 export function GalleryView({ items }: { items: GalleryItem[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [fitSize, setFitSize] = useState({ width: 0, height: 0 });
+  const previewStageRef = useRef<HTMLDivElement>(null);
+  const previewImageRef = useRef<HTMLImageElement>(null);
   const warmedImages = useRef(new Set<string>());
   const warmImage = useCallback((src: string) => {
     if (!src || warmedImages.current.has(src)) return;
@@ -19,9 +22,30 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
   }, []);
   const selected = selectedIndex === null ? null : items[selectedIndex] ?? null;
 
+  const updateFitSize = useCallback(() => {
+    const stage = previewStageRef.current;
+    const image = previewImageRef.current;
+    if (!stage || !image?.naturalWidth || !image?.naturalHeight) return;
+    const availableWidth = Math.max(1, stage.clientWidth - 160);
+    const availableHeight = Math.max(1, stage.clientHeight - 100);
+    const scale = Math.min(availableWidth / image.naturalWidth, availableHeight / image.naturalHeight, 1);
+    setFitSize({ width: Math.round(image.naturalWidth * scale), height: Math.round(image.naturalHeight * scale) });
+  }, []);
+
   useEffect(() => {
     setZoom(1);
+    setFitSize({ width: 0, height: 0 });
   }, [selectedIndex]);
+
+  useEffect(() => {
+    if (selectedIndex === null) return;
+    const stage = previewStageRef.current;
+    if (!stage) return;
+    const observer = new ResizeObserver(updateFitSize);
+    observer.observe(stage);
+    updateFitSize();
+    return () => observer.disconnect();
+  }, [selectedIndex, selected?.image, updateFitSize]);
 
   const closePreview = useCallback(() => setSelectedIndex(null), []);
   const showPrevious = useCallback(() => {
@@ -125,16 +149,18 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
               </div>
             </div>
 
-            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-14 py-5 sm:px-24 md:px-28 md:py-8">
+            <div ref={previewStageRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-14 py-5 sm:px-24 md:px-28 md:py-8">
               <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(#888 0.6px, transparent 0.6px)", backgroundSize: "18px 18px" }} />
-              <div className="relative flex h-full w-full items-center justify-center">
+              <div className="relative flex h-max min-h-full w-max min-w-full items-center justify-center">
                   <img
+                    ref={previewImageRef}
                     src={selected.image}
                     alt={selected.title}
+                    onLoad={updateFitSize}
                     fetchPriority="high"
                     decoding="async"
-                    style={{ maxHeight: `${zoom * 100}%`, maxWidth: `${zoom * 100}%` }}
-                    className="h-auto w-auto shrink-0 rounded-sm object-contain shadow-[0_25px_100px_rgba(0,0,0,0.55)]"
+                    style={fitSize.width && fitSize.height ? { width: `${fitSize.width * zoom}px`, height: `${fitSize.height * zoom}px` } : { maxWidth: "100%", maxHeight: "100%" }}
+                    className="block shrink-0 rounded-sm object-contain shadow-[0_25px_100px_rgba(0,0,0,0.55)]"
                   />
               </div>
 
