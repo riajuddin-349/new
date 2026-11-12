@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, X, Maximize2, ChevronLeft, ChevronRight, Grid2X2 } from "lucide-react";
+import { ArrowLeft, X, Maximize2, ChevronLeft, ChevronRight, Grid2X2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GalleryItem } from "@/lib/content";
 
 export function GalleryView({ items }: { items: GalleryItem[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(1);
   const warmedImages = useRef(new Set<string>());
   const warmImage = useCallback((src: string) => {
     if (!src || warmedImages.current.has(src)) return;
@@ -17,6 +18,10 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
     image.src = src;
   }, []);
   const selected = selectedIndex === null ? null : items[selectedIndex] ?? null;
+
+  useEffect(() => {
+    setZoom(1);
+  }, [selectedIndex]);
 
   const closePreview = useCallback(() => setSelectedIndex(null), []);
   const showPrevious = useCallback(() => {
@@ -109,6 +114,18 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                 <span className="hidden max-w-[35vw] truncate text-[10px] font-mono uppercase tracking-widest text-neutral-500 sm:inline">{selected.title}</span>
               </div>
               <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+                  <button type="button" onClick={() => setZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={zoom <= 1} aria-label="Zoom out" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
+                    <ZoomOut className="h-4 w-4" />
+                  </button>
+                  <span className="w-11 text-center text-[9px] font-mono tabular-nums text-neutral-400">{Math.round(zoom * 100)}%</span>
+                  <button type="button" onClick={() => setZoom((value) => Math.min(3, Number((value + 0.25).toFixed(2))))} disabled={zoom >= 3} aria-label="Zoom in" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
+                    <ZoomIn className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => setZoom(1)} disabled={zoom === 1} aria-label="Reset zoom" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                </div>
                 <span className="text-[10px] font-mono tabular-nums tracking-widest text-neutral-500">
                   <span className="text-white">{String(selectedIndex! + 1).padStart(2, "0")}</span>
                   <span className="mx-2 text-neutral-700">/</span>
@@ -120,7 +137,7 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
               </div>
             </div>
 
-            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-14 py-5 sm:px-24 md:px-28 md:py-8">
+            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-14 py-5 sm:px-24 md:px-28 md:py-8">
               <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(#888 0.6px, transparent 0.6px)", backgroundSize: "18px 18px" }} />
               <div className="relative flex h-full w-full items-center justify-center">
                   <img
@@ -128,7 +145,8 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                     alt={selected.title}
                     fetchPriority="high"
                     decoding="async"
-                    className="max-h-full max-w-full rounded-sm object-contain shadow-[0_25px_100px_rgba(0,0,0,0.55)]"
+                    style={{ maxHeight: `${zoom * 100}%`, maxWidth: `${zoom * 100}%` }}
+                    className="h-auto w-auto shrink-0 rounded-sm object-contain shadow-[0_25px_100px_rgba(0,0,0,0.55)]"
                   />
               </div>
 
