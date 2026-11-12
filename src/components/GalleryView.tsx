@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, X, Maximize2, ChevronLeft, ChevronRight, Grid2X2, ZoomIn, ZoomOut, RotateCcw, SlidersHorizontal, ArrowUp, ArrowDown, ArrowLeft as PanLeft, ArrowRight as PanRight, Maximize } from "lucide-react";
+import { ArrowLeft, X, Maximize2, ChevronLeft, ChevronRight, Grid2X2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GalleryItem } from "@/lib/content";
@@ -9,7 +9,7 @@ import type { GalleryItem } from "@/lib/content";
 export function GalleryView({ items }: { items: GalleryItem[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [controlsOpen, setControlsOpen] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
   const [fitSize, setFitSize] = useState({ width: 0, height: 0 });
   const previewStageRef = useRef<HTMLDivElement>(null);
   const previewImageRef = useRef<HTMLImageElement>(null);
@@ -35,7 +35,7 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
 
   useEffect(() => {
     setZoom(1);
-    setControlsOpen(false);
+    setZoomOpen(false);
     setFitSize({ width: 0, height: 0 });
   }, [selectedIndex]);
 
@@ -153,7 +153,7 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
 
             <div ref={previewStageRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-14 py-5 sm:px-24 md:px-28 md:py-8">
               <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(#888 0.6px, transparent 0.6px)", backgroundSize: "18px 18px" }} />
-              <div className="relative flex h-max min-h-full w-max min-w-full items-center justify-center">
+              <div className="relative flex" style={{ width: `${Math.max(1, (previewStageRef.current?.clientWidth ?? 1) - 112, fitSize.width * zoom)}px`, height: `${Math.max(1, (previewStageRef.current?.clientHeight ?? 1) - 52, fitSize.height * zoom)}px`, alignItems: fitSize.height * zoom <= (previewStageRef.current?.clientHeight ?? 0) - 52 ? "center" : "flex-start", justifyContent: fitSize.width * zoom <= (previewStageRef.current?.clientWidth ?? 0) - 112 ? "center" : "flex-start" }}>
                   <img
                     ref={previewImageRef}
                     src={selected.image}
@@ -177,43 +177,19 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                 </>
               ) : null}
 
-              <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-6">
-                {controlsOpen ? (
-                  <div className="pointer-events-auto w-[min(310px,calc(100vw-32px))] rounded-2xl border border-white/10 bg-[#101010]/95 p-3 shadow-[0_20px_80px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
-                    <div className="mb-3 flex items-center justify-between px-1">
-                      <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-neutral-500">Image controls</span>
-                      <span className="text-[10px] font-mono tabular-nums text-neutral-300">{Math.round(zoom * 100)}%</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => setZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={zoom <= 1} aria-label="Zoom out" className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-neutral-300 transition hover:bg-white/10 disabled:opacity-30"><ZoomOut className="h-4 w-4" /></button>
-                        <button type="button" onClick={() => setZoom((value) => Math.min(3, Number((value + 0.25).toFixed(2))))} disabled={zoom >= 3} aria-label="Zoom in" className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-neutral-300 transition hover:bg-white/10 disabled:opacity-30"><ZoomIn className="h-4 w-4" /></button>
-                        <button type="button" onClick={() => { setZoom(1); previewStageRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" }); }} aria-label="Fit image to screen" className="flex h-9 items-center gap-2 rounded-lg border border-white/10 px-3 text-[9px] font-mono uppercase tracking-wider text-neutral-300 transition hover:bg-white/10"><Maximize className="h-3.5 w-3.5" /> Fit</button>
-                      </div>
-                      <button type="button" onClick={() => { setZoom(1); previewStageRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" }); }} aria-label="Reset zoom" className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-neutral-400 transition hover:bg-white/10 hover:text-white"><RotateCcw className="h-3.5 w-3.5" /></button>
-                    </div>
-                    <div className="my-3 h-px bg-white/[0.08]" />
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-neutral-400">Pan image</p>
-                        <p className="mt-1 text-[9px] text-neutral-600">Move around when zoomed in</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1">
-                        <span />
-                        <button type="button" onClick={() => previewStageRef.current?.scrollBy({ top: -180, behavior: "smooth" })} aria-label="Scroll up" className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-neutral-300 hover:bg-white/10"><ArrowUp className="h-3.5 w-3.5" /></button>
-                        <span />
-                        <button type="button" onClick={() => previewStageRef.current?.scrollBy({ left: -180, behavior: "smooth" })} aria-label="Scroll left" className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-neutral-300 hover:bg-white/10"><PanLeft className="h-3.5 w-3.5" /></button>
-                        <button type="button" onClick={() => previewStageRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" })} aria-label="Center image" className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-[8px] font-mono text-neutral-400 hover:bg-white/10">CTR</button>
-                        <button type="button" onClick={() => previewStageRef.current?.scrollBy({ left: 180, behavior: "smooth" })} aria-label="Scroll right" className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-neutral-300 hover:bg-white/10"><PanRight className="h-3.5 w-3.5" /></button>
-                        <span />
-                        <button type="button" onClick={() => previewStageRef.current?.scrollBy({ top: 180, behavior: "smooth" })} aria-label="Scroll down" className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-neutral-300 hover:bg-white/10"><ArrowDown className="h-3.5 w-3.5" /></button>
-                        <span />
-                      </div>
-                    </div>
+              <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-6">
+                {zoomOpen ? (
+                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-[#101010]/95 px-3 py-2 shadow-[0_16px_60px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
+                    <button type="button" onClick={() => setZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={zoom <= 1} aria-label="Zoom out" className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-neutral-300 transition hover:bg-white/10 disabled:opacity-30"><ZoomOut className="h-4 w-4" /></button>
+                    <span className="min-w-[3.5rem] text-center text-[10px] font-mono tabular-nums text-white">{Math.round(zoom * 100)}%</span>
+                    <button type="button" onClick={() => setZoom((value) => Math.min(3, Number((value + 0.25).toFixed(2))))} disabled={zoom >= 3} aria-label="Zoom in" className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-neutral-300 transition hover:bg-white/10 disabled:opacity-30"><ZoomIn className="h-4 w-4" /></button>
+                    <span className="mx-1 h-5 w-px bg-white/10" />
+                    <button type="button" onClick={() => { setZoom(1); previewStageRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" }); }} className="rounded-full px-2 py-1 text-[9px] font-mono uppercase tracking-wider text-neutral-400 transition hover:bg-white/10 hover:text-white">Fit</button>
+                    <button type="button" onClick={() => { setZoom(1); previewStageRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" }); }} aria-label="Reset zoom" className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white"><RotateCcw className="h-3.5 w-3.5" /></button>
                   </div>
                 ) : null}
-                <button type="button" onClick={() => setControlsOpen((open) => !open)} aria-expanded={controlsOpen} aria-label={controlsOpen ? "Close image controls" : "Open image controls"} className="pointer-events-auto flex h-10 items-center gap-2 rounded-full border border-white/15 bg-[#111]/95 px-4 text-[9px] font-mono uppercase tracking-[0.18em] text-neutral-200 shadow-2xl shadow-black/50 backdrop-blur-xl transition hover:border-white/30 hover:bg-[#1b1b1b]">
-                  <SlidersHorizontal className="h-3.5 w-3.5" /> {controlsOpen ? "Close controls" : "Image controls"}
+                <button type="button" onClick={() => setZoomOpen((open) => !open)} aria-expanded={zoomOpen} aria-label={zoomOpen ? "Close zoom controls" : "Open zoom controls"} className="flex h-9 items-center gap-2 rounded-full border border-white/15 bg-[#111]/95 px-4 text-[9px] font-mono uppercase tracking-[0.18em] text-neutral-200 shadow-2xl shadow-black/50 backdrop-blur-xl transition hover:border-white/30 hover:bg-[#1b1b1b]">
+                  <ZoomIn className="h-3.5 w-3.5" /> {zoomOpen ? "Close" : "Zoom"}
                 </button>
               </div>
             </div>
