@@ -151,9 +151,9 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
               </div>
             </div>
 
-            <div ref={previewStageRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-14 py-5 sm:px-24 md:px-28 md:py-8">
+            <div ref={previewStageRef} className="relative flex min-h-0 flex-1 overflow-auto px-14 py-5 sm:px-24 md:px-28 md:py-8">
               <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(#888 0.6px, transparent 0.6px)", backgroundSize: "18px 18px" }} />
-              <div className="relative flex" style={{ width: `${Math.max(1, (previewStageRef.current?.clientWidth ?? 1) - 112, fitSize.width * zoom)}px`, height: `${Math.max(1, (previewStageRef.current?.clientHeight ?? 1) - 52, fitSize.height * zoom)}px`, alignItems: fitSize.height * zoom <= (previewStageRef.current?.clientHeight ?? 0) - 52 ? "center" : "flex-start", justifyContent: fitSize.width * zoom <= (previewStageRef.current?.clientWidth ?? 0) - 112 ? "center" : "flex-start" }}>
+              <div className="relative flex shrink-0" style={{ width: `${Math.max(1, (previewStageRef.current?.clientWidth ?? 1) - 112, fitSize.width * zoom)}px`, height: `${Math.max(1, (previewStageRef.current?.clientHeight ?? 1) - 52, fitSize.height * zoom)}px`, alignItems: fitSize.height * zoom <= (previewStageRef.current?.clientHeight ?? 0) - 52 ? "center" : "flex-start", justifyContent: fitSize.width * zoom <= (previewStageRef.current?.clientWidth ?? 0) - 112 ? "center" : "flex-start" }}>
                   <img
                     ref={previewImageRef}
                     src={selected.image}
