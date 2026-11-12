@@ -114,18 +114,6 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                 <span className="hidden max-w-[35vw] truncate text-[10px] font-mono uppercase tracking-widest text-neutral-500 sm:inline">{selected.title}</span>
               </div>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
-                  <button type="button" onClick={() => setZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={zoom <= 1} aria-label="Zoom out" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
-                    <ZoomOut className="h-4 w-4" />
-                  </button>
-                  <span className="w-11 text-center text-[9px] font-mono tabular-nums text-neutral-400">{Math.round(zoom * 100)}%</span>
-                  <button type="button" onClick={() => setZoom((value) => Math.min(3, Number((value + 0.25).toFixed(2))))} disabled={zoom >= 3} aria-label="Zoom in" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
-                    <ZoomIn className="h-4 w-4" />
-                  </button>
-                  <button type="button" onClick={() => setZoom(1)} disabled={zoom === 1} aria-label="Reset zoom" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                </div>
                 <span className="text-[10px] font-mono tabular-nums tracking-widest text-neutral-500">
                   <span className="text-white">{String(selectedIndex! + 1).padStart(2, "0")}</span>
                   <span className="mx-2 text-neutral-700">/</span>
@@ -160,6 +148,22 @@ export function GalleryView({ items }: { items: GalleryItem[] }) {
                   </button>
                 </>
               ) : null}
+
+              <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 sm:bottom-6">
+                <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-[#111]/90 px-2 py-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl">
+                  <button type="button" onClick={() => setZoom((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={zoom <= 1} aria-label="Zoom out" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
+                    <ZoomOut className="h-4 w-4" />
+                  </button>
+                  <span className="min-w-11 text-center text-[10px] font-mono tabular-nums text-neutral-300">{Math.round(zoom * 100)}%</span>
+                  <button type="button" onClick={() => setZoom((value) => Math.min(3, Number((value + 0.25).toFixed(2))))} disabled={zoom >= 3} aria-label="Zoom in" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
+                    <ZoomIn className="h-4 w-4" />
+                  </button>
+                  <span className="mx-0.5 h-5 w-px bg-white/10" />
+                  <button type="button" onClick={() => setZoom(1)} disabled={zoom === 1} aria-label="Reset zoom" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="shrink-0 border-t border-white/[0.08] px-5 pb-5 pt-4 sm:px-8 sm:pb-6">
